@@ -1005,3 +1005,22 @@ func (controller *Controller) GetOrderIdInputController() (int, error) {
 	orderId, _ := strconv.Atoi(result)
 	return orderId, nil
 }
+
+//-----------report menu choice  
+func (controller *Controller) ReportMenuChoiceController() (string, error) {
+	validate := func(input string) error {
+		if input != "1" && input != "2" && input != "3" && input != "4" {
+			return errors.New("please choose a valid menu (1/2/3/4)")
+		}
+		return nil
+	}
+	prompt := promptui.Prompt{
+		Label:    "Please choose (1) Sales SummaryL30d  (2) Top 10 Products  (3) Orders by Status  (4) Back: ",
+		Validate: validate,
+	}
+	choice, err := prompt.Run()
+	if err != nil {
+		return "", err
+	}
+	return choice, nil
+} 
