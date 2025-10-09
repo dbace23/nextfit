@@ -17,7 +17,7 @@ type TopProductReport struct{
 	GMV float64
 }
 
-type orderBystatusReport struct{
+type OrdersByStatusReport struct{
 	Status string
 	Count int
 	Revenue float64

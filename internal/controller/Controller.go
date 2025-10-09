@@ -16,6 +16,7 @@ type Controller struct {
 	CategoryService *service.CategoryService
 	ProductService  *service.ProductService
 	OrderService    *service.OrderService
+	ReportService   *service.ReportService
 }
 
 func (controller *Controller) UnathorizedMenuController() (string, error) {
@@ -1007,6 +1008,16 @@ func (controller *Controller) GetOrderIdInputController() (int, error) {
 }
 
 //-----------report menu choice  
+func (c *Controller) GetSalesSummaryDailyController() ([]model.DailySalesReport, error) {
+	return c.ReportService.GetSalesSummaryDaily()
+}
+func (c *Controller) GetTopProductsController() ([]model.TopProductReport, error) {
+	return c.ReportService.GetTopProducts()
+}
+func (c *Controller) GetOrdersByStatusController() ([]model.OrdersByStatusReport, error) {
+	return c.ReportService.GetOrdersByStatus()
+}
+
 func (controller *Controller) ReportMenuChoiceController() (string, error) {
 	validate := func(input string) error {
 		if input != "1" && input != "2" && input != "3" && input != "4" {

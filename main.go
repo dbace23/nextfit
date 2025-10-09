@@ -17,7 +17,9 @@ func main() {
 	productRepository := &repository.ProductRepository{DB: db}
 	orderRepository := &repository.OrderRepository{DB: db}
 	orderDetailRepository := &repository.OrderDetailRepository{DB: db}
+	reportRepo := &repository.ReportRepository{DB: db} ///report
 
+	reportService := service.NewReportService(reportRepo)
 	categoryService := &service.CategoryService{CategoryRepository: categoryRepository}
 	userService := &service.UserService{UserRepository: userRepository}
 	productService := &service.ProductService{
@@ -37,6 +39,7 @@ func main() {
 		CategoryService: categoryService,
 		ProductService:  productService,
 		OrderService:    orderService,
+		ReportService: reportService,
 	}
 
 	view := &view.View{Controller: controller}

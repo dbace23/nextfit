@@ -329,6 +329,7 @@ func (view *View) manageCategoriesMenu() {
 	}
 }
 
+
 func (view *View) loggedInAdmin(currentUser *model.UserModel) bool {
 	authorizedAdminMenu(currentUser)
 
@@ -348,7 +349,7 @@ func (view *View) loggedInAdmin(currentUser *model.UserModel) bool {
 	case "4":
 		// Handle manage orders
 	case "5":
-		// Handle reports
+		view.showReport()
 	case "6":
 		return false // Logout
 	}
@@ -461,6 +462,100 @@ func (view *View) Start() {
 		}
 	}
 }
+
+//report view
+func (view *View) showReport() {
+	for {
+		fmt.Println("\n==== Reports Menu ====")
+		fmt.Println("1. Sales Summary (last 30 days)")
+		fmt.Println("2. Top 10 Products (last 30 days)")
+		fmt.Println("3. Orders by Status (last 30 days)")
+		fmt.Println("4. Back")
+
+		choice, err := view.Controller.ReportMenuChoiceController()
+		if err != nil {
+			fmt.Println("Error: invalid choice.")
+			continue
+		}
+
+		switch choice {
+		case "1":
+			reports, err := view.Controller.GetSalesSummaryDailyController()
+			if err != nil {
+				fmt.Println("Error getting sales summary:", err)
+				continue
+			}
+			showSalesSummaryTable(reports)
+
+		case "2":
+			products, err := view.Controller.GetTopProductsController()
+			if err != nil {
+				fmt.Println("Error getting top products:", err)
+				continue
+			}
+			showTopProductsTable(products)
+
+		case "3":
+			orders, err := view.Controller.GetOrdersByStatusController()
+			if err != nil {
+				fmt.Println("Error getting orders by status:", err)
+				continue
+			}
+			showOrdersByStatusTable(orders)
+
+		case "4":
+			return
+		}
+
+		fmt.Println("\nPress Enter to return to the report menu...")
+		fmt.Scanln()
+	}
+}
+//////render view
+
+func showSalesSummaryTable(data []model.DailySalesReport) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.Header([]string{"Date", "Revenue", "Orders", "Customers", "AOV"})
+	for _, r := range data {
+		table.Append([]string{
+			r.Day.Format("2006-01-02"),
+			fmt.Sprintf("%.2f", r.Revenue),
+			fmt.Sprintf("%d", r.Orders),
+			fmt.Sprintf("%d", r.UniqueCustomers),
+			fmt.Sprintf("%.2f", r.AOV),
+		})
+	}
+	table.Render()
+}
+
+func showTopProductsTable(data []model.TopProductReport) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.Header([]string{"Product ID", "Name", "Quantity", "GMV"})
+	for _, p := range data {
+		table.Append([]string{
+			fmt.Sprintf("%d", p.ProductId),
+			p.ProductName,
+			fmt.Sprintf("%d", p.Quantity),
+			fmt.Sprintf("%.2f", p.GMV),
+		})
+	}
+	table.Render()
+}
+
+func showOrdersByStatusTable(data []model.OrdersByStatusReport) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.Header([]string{"Status", "Orders", "Revenue"})
+	for _, o := range data {
+		table.Append([]string{
+			o.Status,
+			fmt.Sprintf("%d", o.Count),
+			fmt.Sprintf("%.2f", o.Revenue),
+		})
+	}
+	table.Render()
+}
+///////////////////////////////////////////////////////////////////////////////////
+
 
 func showOrders(orders []model.OrderModel) {
 	table := tablewriter.NewWriter(os.Stdout)

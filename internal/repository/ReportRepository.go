@@ -113,3 +113,14 @@ func (reportRepository *ReportRepository) GetOrdersByStatus(ctx context.Context)
 		return nil, err
 	}
 	defer result.Close()
+
+	var out []model.OrdersByStatusReport
+	for result.Next() {
+		var r0 model.OrdersByStatusReport
+		if err := result.Scan(&r0.Status, &r0.Count, &r0.Revenue); err != nil {
+			return nil, err
+		}
+		out = append(out, r0)
+	}
+	return out, result.Err()
+}
