@@ -184,7 +184,7 @@ func (r *OrderRepository) UpdateOrderStatus(ctx context.Context, orderId int, st
     n, err := res.RowsAffected()
     if err != nil { return err }
     if n == 0 {
-        return fmt.Errorf("please choose id from list above", orderId)
+        return fmt.Errorf("please choose id from list above")
     }
     return nil
 }
