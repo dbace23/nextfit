@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"nextfit/internal/model"
@@ -159,4 +160,15 @@ func (orderService *OrderService) GetOrderDetailsWithProducts(orderId int, userI
 	}
 
 	return order, detailsWithProducts, nil
+}
+
+////////////update orders
+func (s *OrderService) GetPendingOrders() ([]model.OrderModel, error) {
+	ctx := context.Background()
+	return s.OrderRepository.GetPendingOrders(ctx)
+}
+
+func (s *OrderService) UpdateOrderStatus(orderId int, status string) error {
+	ctx := context.Background()
+	return s.OrderRepository.UpdateOrderStatus(ctx, orderId, status)
 }

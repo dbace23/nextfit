@@ -7,7 +7,7 @@ import (
 	"nextfit/internal/service"
 	"regexp"
 	"strconv"
-
+	"strings"
 	"github.com/manifoldco/promptui"
 )
 
@@ -1035,3 +1035,53 @@ func (controller *Controller) ReportMenuChoiceController() (string, error) {
 	}
 	return choice, nil
 } 
+
+func (c *Controller) UpdateOrderStatusController() error {
+    pendingOrders, err := c.OrderService.GetPendingOrders()
+    if err != nil {
+        return fmt.Errorf("failed to fetch pending orders: %v", err)
+    }
+
+    if len(pendingOrders) == 0 {
+        fmt.Println("\n✅ All orders are already completed — nothing to update.")
+        fmt.Println("Press Enter to go back...")
+        fmt.Scanln()
+        return nil
+    }
+
+    fmt.Println("\n==== Pending Orders ====")
+    fmt.Printf("%-5s | %-10s | %-15s | %-10s | %-10s | %-20s\n",
+        "ID", "User ID", "Payment Type", "Amount", "Status", "Created At")
+    fmt.Println(strings.Repeat("-", 80))
+    for _, o := range pendingOrders {
+        fmt.Printf("%-5d | %-10d | %-15s | %-10.2f | %-10s | %-20s\n",
+            o.OrderId, o.UserId, o.PaymentType, o.PaidAmount, o.OrderStatus,
+            o.CreatedAt.Format("2006-01-02 15:04:05"))
+    }
+
+    var orderId int
+    fmt.Print("\nEnter Order ID to mark as COMPLETED: ")
+    fmt.Scanln(&orderId)
+
+    // Confirm
+    var confirm string
+    fmt.Printf("Are you sure you want to mark order #%d as COMPLETED? (y/n): ", orderId)
+    fmt.Scanln(&confirm)
+    if confirm != "y" && confirm != "Y" {
+        fmt.Println("❌ Cancelled.")
+        return nil
+    }
+
+    // Update status directly via OrderService
+    if err := c.OrderService.UpdateOrderStatus(orderId, "COMPLETED"); err != nil {
+        return fmt.Errorf("failed to update order %d: %v", orderId, err)
+    }
+
+    fmt.Printf("✅ Order ID %d has been successfully updated to COMPLETED.\n", orderId)
+    fmt.Scanln()
+    return nil
+}
+
+func (c *Controller) GetPendingOrdersController() ([]model.OrderModel, error) {
+    return c.OrderService.GetPendingOrders()
+}

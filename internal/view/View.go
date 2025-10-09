@@ -347,9 +347,9 @@ func (view *View) loggedInAdmin(currentUser *model.UserModel) bool {
 	case "3":
 		view.manageUsersMenu()
 	case "4":
-		// Handle manage orders
+		view.manageOrdersMenu()
 	case "5":
-		view.showReport()
+		view.showReportMenu()
 	case "6":
 		return false // Logout
 	}
@@ -464,7 +464,7 @@ func (view *View) Start() {
 }
 
 //report view
-func (view *View) showReport() {
+func (view *View) showReportMenu() {
 	for {
 		fmt.Println("\n==== Reports Menu ====")
 		fmt.Println("1. Sales Summary (last 30 days)")
@@ -609,4 +609,45 @@ func showOrderDetails(order model.OrderModel, orderDetails []map[string]interfac
 	fmt.Printf("\nSubtotal: $%.2f\n", grandTotal)
 	fmt.Printf("Shipping Fee: $%.2f\n", order.ShippingFee)
 	fmt.Printf("Total Paid: $%.2f\n", order.PaidAmount)
+}
+
+func (view *View) manageOrdersMenu() {
+    for {
+        fmt.Println("\n==== Manage Orders ====")
+        fmt.Println("1. View Pending Orders")
+        fmt.Println("2. Mark Order as Completed")
+        fmt.Println("3. Back")
+
+        var choice string
+        fmt.Print("Choose an option: ")
+        fmt.Scanln(&choice)
+
+        switch choice {
+        case "1":
+            orders, err := view.Controller.GetPendingOrdersController()
+            if err != nil {
+                printError("Failed to fetch pending orders.")
+                continue
+            }
+            if len(orders) == 0 {
+                printSuccess("No pending orders found.")
+            } else {
+                showOrders(orders)
+            }
+
+        case "2":
+            if err := view.Controller.UpdateOrderStatusController(); err != nil {
+                printError(fmt.Sprintf("Failed to update order: %v", err))
+            }
+
+        case "3":
+            return
+
+        default:
+            printError("Invalid choice. Please select 1, 2, or 3.")
+        }
+
+        fmt.Println("\nPress Enter to continue...")
+        fmt.Scanln()
+    }
 }

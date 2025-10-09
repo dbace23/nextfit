@@ -92,9 +92,6 @@ CREATE TABLE IF NOT EXISTS order_details (
 );
 
 
-
-
-
 INSERT INTO categories (category_name, created_at, updated_at, deleted_at) VALUES
 ('Soccer',       '2025-10-01 08:00:00', '2025-10-05 10:00:00', NULL),
 ('Basketball',   '2025-10-02 09:00:00', NULL,                 NULL),
