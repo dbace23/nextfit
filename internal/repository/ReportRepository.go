@@ -26,7 +26,7 @@ func (reportRepository *ReportRepository) GetSalesSummaryDaily(ctx context.Conte
 		FROM orders o
 		WHERE o.deleted_at IS NULL
 		AND o.created_at >= CURDATE() - INTERVAL 29 DAY
-		-- AND o.order_status = 'COMPLETED'
+		AND o.order_status = 'COMPLETED'
 		GROUP BY DATE(o.created_at)
 	)
 	SELECT
