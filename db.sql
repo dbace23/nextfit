@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at      TIMESTAMP NULL DEFAULT NULL,
-    UNIQUE KEY uq_users_email (email),
+    UNIQUE KEY uq_users_email (email)
 );
 
 -- =========================
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS products (
     product_name    VARCHAR(255) NOT NULL,
     category_id     INT NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    selling_price  DECIMAL(12,2) DEFAULT NULL,
+    selling_price   DECIMAL(12,2) NOT NULL,
     updated_at      TIMESTAMP NULL DEFAULT NULL,
     deleted_at      TIMESTAMP NULL DEFAULT NULL,
     CONSTRAINT fk_products_category
@@ -45,8 +45,6 @@ CREATE TABLE IF NOT EXISTS products (
         REFERENCES categories (category_id)
         ON DELETE RESTRICT
 );
-
-
 
 
 -- ⚠️ NOTE: MySQL does not support partial unique indexes.
@@ -79,7 +77,7 @@ CREATE TABLE IF NOT EXISTS order_details (
     order_detail_id INT AUTO_INCREMENT PRIMARY KEY,
     order_id        INT NOT NULL,
     product_id      INT NOT NULL,
-    quantity        INT NOT NULL CHECK (quantity > 0),
+    quantity        INT NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NULL DEFAULT NULL,
     deleted_at      TIMESTAMP NULL DEFAULT NULL,
@@ -90,7 +88,21 @@ CREATE TABLE IF NOT EXISTS order_details (
     CONSTRAINT fk_order_details_product
         FOREIGN KEY (product_id)
         REFERENCES products (product_id)
-        ON DELETE RESTRICT,
         ON DELETE RESTRICT
 );
 
+
+
+
+
+INSERT INTO categories (category_name, created_at, updated_at, deleted_at) VALUES
+('Soccer',       '2025-10-01 08:00:00', '2025-10-05 10:00:00', NULL),
+('Basketball',   '2025-10-02 09:00:00', NULL,                 NULL),
+('Baseball',     '2025-09-28 07:30:00', '2025-10-03 15:00:00', NULL),
+('Tennis',       '2025-10-01 12:00:00', '2025-10-07 08:45:00', '2025-10-08 14:00:00'),
+('Swimming',     '2025-10-03 11:00:00', NULL,                 NULL),
+('Volleyball',   '2025-10-04 13:00:00', '2025-10-06 09:30:00', NULL),
+('Table Tennis', '2025-10-05 14:00:00', '2025-10-08 10:15:00', '2025-10-09 11:00:00'),
+('Badminton',    '2025-09-30 10:30:00', NULL,                 NULL),
+('Golf',         '2025-10-06 15:00:00', '2025-10-09 16:45:00', NULL),
+('Rugby',        '2025-09-29 08:15:00', NULL,                 '2025-10-07 13:30:00');
