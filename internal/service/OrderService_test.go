@@ -72,7 +72,7 @@ func (m *mockUserRepo) FindByUserId(id int) (model.UserModel, error) {
 	return model.UserModel{}, errors.New("not found")
 }
 
-// ---------- Helpers ----------
+// ---------- Helpers, fake sql ----------
 
 func newSQLMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	db, mock, err := sqlmock.New()

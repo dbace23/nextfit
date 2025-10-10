@@ -10,7 +10,7 @@ import (
 )
 
 type UserService struct {
-	UserRepository repository.UserRepository
+	UserRepository *repository.UserRepository
 }
 
 func (userService *UserService) Login(email, password string) (model.UserModel, error) {
