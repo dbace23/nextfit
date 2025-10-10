@@ -9,10 +9,10 @@ import (
 )
 
 type OrderService struct {
-	OrderRepository       *repository.OrderRepository
-	OrderDetailRepository *repository.OrderDetailRepository
-	ProductRepository     *repository.ProductRepository
-	UserRepository        *repository.UserRepository
+	OrderRepository       repository.OrderStore
+	OrderDetailRepository repository.OrderDetailStore
+	ProductRepository     repository.ProductStore
+	UserRepository        repository.UserStore
 	DB                    *sql.DB
 }
 
