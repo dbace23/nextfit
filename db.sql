@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS order_details (
 );
 
 
+
 INSERT INTO categories (category_name, created_at, updated_at, deleted_at) VALUES
 ('Soccer',       '2025-10-01 08:00:00', '2025-10-05 10:00:00', NULL),
 ('Basketball',   '2025-10-02 09:00:00', NULL,                 NULL),
@@ -103,3 +104,22 @@ INSERT INTO categories (category_name, created_at, updated_at, deleted_at) VALUE
 ('Badminton',    '2025-09-30 10:30:00', NULL,                 NULL),
 ('Golf',         '2025-10-06 15:00:00', '2025-10-09 16:45:00', NULL),
 ('Rugby',        '2025-09-29 08:15:00', NULL,                 '2025-10-07 13:30:00');
+
+-- additional tables
+CREATE TABLE stock (
+  product_id   INT NOT NULL,
+  qty_on_hand  INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (product_id, warehouse_id),
+  FOREIGN KEY (product_id) REFERENCES products(product_id)
+) ENGINE=InnoDB;
+
+-- 
+CREATE TABLE stock_movements (
+  movement_id       BIGINT PRIMARY KEY AUTO_INCREMENT,
+  product_id        INT NOT NULL,
+  order_detail_id   BIGINT NULL,
+  qty_change        INT NOT NULL,
+  reason            ENUM('order','order-update','order-cancel','manual') NOT NULL,
+  created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(product_id)
+) ENGINE=InnoDB;
