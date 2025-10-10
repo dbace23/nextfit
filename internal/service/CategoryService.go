@@ -9,7 +9,7 @@ import (
 )
 
 type CategoryService struct {
-	CategoryRepository *repository.CategoryRepository
+	CategoryRepository repository.CategoryStore
 }
 
 func (categoryService *CategoryService) GetAll() ([]model.CategoryModel, error) {
@@ -17,7 +17,6 @@ func (categoryService *CategoryService) GetAll() ([]model.CategoryModel, error) 
 	if err != nil {
 		return nil, err
 	}
-
 	return categories, nil
 }
 
@@ -32,15 +31,11 @@ func (categoryService *CategoryService) Create(name string) (model.CategoryModel
 		return model.CategoryModel{}, fmt.Errorf("category with name '%s' already exists", name)
 	}
 
-	newCategory := model.CategoryModel{
-		Name: trimName,
-	}
-
+	newCategory := model.CategoryModel{Name: trimName}
 	createdCategory, err := categoryService.CategoryRepository.Create(newCategory)
 	if err != nil {
 		return model.CategoryModel{}, fmt.Errorf("failed to create category: %v", err)
 	}
-
 	return createdCategory, nil
 }
 
@@ -71,7 +66,6 @@ func (categoryService *CategoryService) Update(categoryId int, updatedCategory m
 	if err != nil {
 		return model.CategoryModel{}, fmt.Errorf("failed to update category: %v", err)
 	}
-
 	return result, nil
 }
 
@@ -85,11 +79,9 @@ func (categoryService *CategoryService) Delete(categoryId int) error {
 		return fmt.Errorf("category not found: %v", err)
 	}
 
-	err = categoryService.CategoryRepository.Delete(categoryId)
-	if err != nil {
+	if err := categoryService.CategoryRepository.Delete(categoryId); err != nil {
 		return fmt.Errorf("failed to delete category: %v", err)
 	}
-
 	return nil
 }
 
@@ -97,11 +89,9 @@ func (categoryService *CategoryService) GetById(categoryId int) (model.CategoryM
 	if categoryId <= 0 {
 		return model.CategoryModel{}, fmt.Errorf("invalid category ID")
 	}
-
 	category, err := categoryService.CategoryRepository.FindByCategoryId(categoryId)
 	if err != nil {
 		return model.CategoryModel{}, fmt.Errorf("category not found: %v", err)
 	}
-
 	return category, nil
 }

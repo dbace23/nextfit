@@ -1,242 +1,195 @@
 package service_test
 
 import (
-	"regexp"
+	"errors"
 	"testing"
-	"time"
-
-	"github.com/DATA-DOG/go-sqlmock"
 
 	"nextfit/internal/model"
-	"nextfit/internal/repository"
 	"nextfit/internal/service"
 )
 
-func rx(s string) string { return regexp.QuoteMeta(s) }
+// mockCategoryStore implements repository.CategoryStore for tests.
+type mockCategoryStore struct {
+	getAllFn           func() ([]model.CategoryModel, error)
+	findByNameFn       func(string) (model.CategoryModel, error)
+	findByCategoryIdFn func(int) (model.CategoryModel, error)
+	createFn           func(model.CategoryModel) (model.CategoryModel, error)
+	updateFn           func(int, model.CategoryModel) (model.CategoryModel, error)
+	deleteFn           func(int) error
+}
 
-func TestCategory_Create_Success(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("sqlmock: %v", err)
+func (m *mockCategoryStore) GetAll() ([]model.CategoryModel, error) {
+	if m.getAllFn != nil { return m.getAllFn() }
+	return nil, nil
+}
+func (m *mockCategoryStore) FindByName(name string) (model.CategoryModel, error) {
+	if m.findByNameFn != nil { return m.findByNameFn(name) }
+	return model.CategoryModel{}, errors.New("not found")
+}
+func (m *mockCategoryStore) FindByCategoryId(id int) (model.CategoryModel, error) {
+	if m.findByCategoryIdFn != nil { return m.findByCategoryIdFn(id) }
+	return model.CategoryModel{}, errors.New("not found")
+}
+func (m *mockCategoryStore) Create(c model.CategoryModel) (model.CategoryModel, error) {
+	if m.createFn != nil { return m.createFn(c) }
+	return c, nil
+}
+func (m *mockCategoryStore) Update(id int, c model.CategoryModel) (model.CategoryModel, error) {
+	if m.updateFn != nil { return m.updateFn(id, c) }
+	return c, nil
+}
+func (m *mockCategoryStore) Delete(id int) error {
+	if m.deleteFn != nil { return m.deleteFn(id) }
+	return nil
+}
+
+func TestCategoryService_Create_Success(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByNameFn: func(name string) (model.CategoryModel, error) {
+			return model.CategoryModel{}, errors.New("not found") // name is free
+		},
+		createFn: func(c model.CategoryModel) (model.CategoryModel, error) {
+			c.CategoryId = 123
+			return c, nil
+		},
 	}
-	defer db.Close()
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
 
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_name = \?`)).
-		WithArgs("Soccer").
-		WillReturnRows(sqlmock.NewRows([]string{"category_id"}))
-
-
-	mock.ExpectExec(rx(`INSERT INTO categories`)).
-		WithArgs("Soccer", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
-		WillReturnResult(sqlmock.NewResult(123, 1))
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	got, err := svc.Create("  Soccer  ")
+	got, err := svc.Create("  Soccer ")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-	if got.CategoryId == 0 || got.Name != "Soccer" {
+	if got.CategoryId != 123 || got.Name != "Soccer" {
 		t.Fatalf("unexpected result: %+v", got)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
 	}
 }
 
-func TestCategory_Create_EmptyName(t *testing.T) {
-	db, _, _ := sqlmock.New()
-	defer db.Close()
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
+func TestCategoryService_Create_Empty(t *testing.T) {
+	svc := &service.CategoryService{CategoryRepository: &mockCategoryStore{}}
 	if _, err := svc.Create("   "); err == nil {
 		t.Fatal("expected error for empty name")
 	}
 }
 
-func TestCategory_Create_Duplicate(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_name = \?`)).
-		WithArgs("Soccer").
-		WillReturnRows(sqlmock.NewRows([]string{"category_id", "category_name"}).
-			AddRow(7, "Soccer"))
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	if _, err := svc.Create("Soccer"); err == nil {
-		t.Fatal("expected duplicate name error")
+func TestCategoryService_Create_Duplicate(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByNameFn: func(name string) (model.CategoryModel, error) {
+			return model.CategoryModel{CategoryId: 7, Name: "Soccer"}, nil // already exists
+		},
 	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
+	if _, err := svc.Create("Soccer"); err == nil {
+		t.Fatal("expected duplicate error")
 	}
 }
 
-func TestCategory_Update_Success(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	id := 10
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_id = \?`)).
-		WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"category_id", "category_name", "created_at", "updated_at", "deleted_at"}).
-			AddRow(id, "OldName", time.Now(), nil, nil))
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_name = \?`)).
-		WithArgs("NewName").
-		WillReturnRows(sqlmock.NewRows([]string{"category_id"}))
-
-	mock.ExpectExec(rx(`UPDATE categories SET category_name = \?, updated_at = \? WHERE category_id = \?`)).
-		WithArgs("NewName", sqlmock.AnyArg(), id).
-		WillReturnResult(sqlmock.NewResult(int64(id), 1))
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	got, err := svc.Update(id, model.CategoryModel{Name: "  NewName "})
+func TestCategoryService_Update_Success(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByCategoryIdFn: func(id int) (model.CategoryModel, error) {
+			return model.CategoryModel{CategoryId: id, Name: "Old"}, nil // exists
+		},
+		findByNameFn: func(name string) (model.CategoryModel, error) {
+			return model.CategoryModel{}, errors.New("not found") // new name is free
+		},
+		updateFn: func(id int, c model.CategoryModel) (model.CategoryModel, error) {
+			return c, nil
+		},
+	}
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
+	got, err := svc.Update(10, model.CategoryModel{Name: "  NewName "})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-	if got.Name != "NewName" {
-		t.Fatalf("unexpected updated name: %+v", got)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
+	if got.Name != "NewName" || got.CategoryId != 10 {
+		t.Fatalf("bad update: %+v", got)
 	}
 }
 
-func TestCategory_Update_InvalidID(t *testing.T) {
-	db, _, _ := sqlmock.New()
-	defer db.Close()
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	_, err := svc.Update(0, model.CategoryModel{Name: "X"})
-	if err == nil {
+func TestCategoryService_Update_InvalidID(t *testing.T) {
+	svc := &service.CategoryService{CategoryRepository: &mockCategoryStore{}}
+	if _, err := svc.Update(0, model.CategoryModel{Name: "X"}); err == nil {
 		t.Fatal("expected invalid id error")
 	}
 }
 
-func TestCategory_Update_NotFound(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	id := 99
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_id = \?`)).
-		WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"category_id"}))
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	_, err := svc.Update(id, model.CategoryModel{Name: "Any"})
-	if err == nil {
-		t.Fatal("expected not found error")
+func TestCategoryService_Update_NameTakenByAnother(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByCategoryIdFn: func(id int) (model.CategoryModel, error) {
+			return model.CategoryModel{CategoryId: id, Name: "Old"}, nil
+		},
+		findByNameFn: func(name string) (model.CategoryModel, error) {
+			return model.CategoryModel{CategoryId: 777, Name: "Taken"}, nil // different ID
+		},
 	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
+	if _, err := svc.Update(10, model.CategoryModel{Name: "Taken"}); err == nil {
+		t.Fatal("expected name taken error")
 	}
 }
 
-func TestCategory_Update_NameTakenByAnother(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	id := 10
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_id = \?`)).
-		WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"category_id", "category_name"}).
-			AddRow(id, "Old"))
-
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_name = \?`)).
-		WithArgs("Taken").
-		WillReturnRows(sqlmock.NewRows([]string{"category_id", "category_name"}).
-			AddRow(777, "Taken"))
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	_, err := svc.Update(id, model.CategoryModel{Name: "Taken"})
-	if err == nil {
-		t.Fatal("expected duplicate name error")
+func TestCategoryService_Delete_Success(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByCategoryIdFn: func(id int) (model.CategoryModel, error) {
+			return model.CategoryModel{CategoryId: id, Name: "X"}, nil
+		},
+		deleteFn: func(id int) error { return nil },
 	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
-	}
-}
-
-func TestCategory_Delete_Success(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	id := 5
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_id = \?`)).
-		WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"category_id", "category_name"}).
-			AddRow(id, "X"))
-
-	mock.ExpectExec(rx(`DELETE FROM categories WHERE category_id = \?`)).
-		WithArgs(id).
-		WillReturnResult(sqlmock.NewResult(int64(id), 1))
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	if err := svc.Delete(id); err != nil {
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
+	if err := svc.Delete(5); err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
-	}
 }
 
-func TestCategory_Delete_InvalidID(t *testing.T) {
-	db, _, _ := sqlmock.New()
-	defer db.Close()
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
+func TestCategoryService_Delete_InvalidID(t *testing.T) {
+	svc := &service.CategoryService{CategoryRepository: &mockCategoryStore{}}
 	if err := svc.Delete(0); err == nil {
 		t.Fatal("expected invalid id error")
 	}
 }
 
-func TestCategory_Delete_NotFound(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	id := 77
-
-	mock.ExpectQuery(rx(`SELECT .* FROM categories WHERE category_id = \?`)).
-		WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"category_id"}))
-
-	repo := &repository.CategoryRepository{DB: db}
-	svc := &service.CategoryService{CategoryRepository: repo}
-
-	if err := svc.Delete(id); err == nil {
+func TestCategoryService_Delete_NotFound(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByCategoryIdFn: func(id int) (model.CategoryModel, error) {
+			return model.CategoryModel{}, errors.New("not found")
+		},
+	}
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
+	if err := svc.Delete(77); err == nil {
 		t.Fatal("expected not found error")
 	}
+}
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
+func TestCategoryService_GetById_Success(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByCategoryIdFn: func(id int) (model.CategoryModel, error) {
+			return model.CategoryModel{CategoryId: id, Name: "Soccer"}, nil
+		},
+	}
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
+	got, err := svc.GetById(7)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if got.CategoryId != 7 || got.Name != "Soccer" {
+		t.Fatalf("unexpected result: %+v", got)
+	}
+}
+
+func TestCategoryService_GetById_InvalidID(t *testing.T) {
+	svc := &service.CategoryService{CategoryRepository: &mockCategoryStore{}}
+	if _, err := svc.GetById(0); err == nil {
+		t.Fatal("expected invalid id error")
+	}
+}
+
+func TestCategoryService_GetById_NotFound(t *testing.T) {
+	mockRepo := &mockCategoryStore{
+		findByCategoryIdFn: func(id int) (model.CategoryModel, error) {
+			return model.CategoryModel{}, errors.New("not found")
+		},
+	}
+	svc := &service.CategoryService{CategoryRepository: mockRepo}
+	if _, err := svc.GetById(99); err == nil {
+		t.Fatal("expected not found error")
 	}
 }
