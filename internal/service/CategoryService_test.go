@@ -8,7 +8,6 @@ import (
 	"nextfit/internal/service"
 )
 
-// mockCategoryStore implements repository.CategoryStore for tests.
 type mockCategoryStore struct {
 	getAllFn           func() ([]model.CategoryModel, error)
 	findByNameFn       func(string) (model.CategoryModel, error)
@@ -46,7 +45,7 @@ func (m *mockCategoryStore) Delete(id int) error {
 func TestCategoryService_Create_Success(t *testing.T) {
 	mockRepo := &mockCategoryStore{
 		findByNameFn: func(name string) (model.CategoryModel, error) {
-			return model.CategoryModel{}, errors.New("not found") // name is free
+			return model.CategoryModel{}, errors.New("not found") // name can use
 		},
 		createFn: func(c model.CategoryModel) (model.CategoryModel, error) {
 			c.CategoryId = 123
@@ -89,7 +88,7 @@ func TestCategoryService_Update_Success(t *testing.T) {
 			return model.CategoryModel{CategoryId: id, Name: "Old"}, nil // exists
 		},
 		findByNameFn: func(name string) (model.CategoryModel, error) {
-			return model.CategoryModel{}, errors.New("not found") // new name is free
+			return model.CategoryModel{}, errors.New("not found") // new name can use
 		},
 		updateFn: func(id int, c model.CategoryModel) (model.CategoryModel, error) {
 			return c, nil

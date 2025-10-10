@@ -2,8 +2,6 @@ package repository
 
 import "nextfit/internal/model"
 
-// contract the service needs.
- 
 type CategoryStore interface {
 	GetAll() ([]model.CategoryModel, error)
 	FindByName(name string) (model.CategoryModel, error)
